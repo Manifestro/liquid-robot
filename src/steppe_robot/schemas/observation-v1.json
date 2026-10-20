@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "behavior_prefix": "SteppeRobot-v1",
+  "vector_size": 1118,
+  "camera": {
+    "shape": [
+      3,
+      120,
+      160
+    ],
+    "wire_dtype": "float32",
+    "wire_range": [
+      0,
+      1
+    ],
+    "policy_dtype": "uint8",
+    "policy_range": [
+      0,
+      255
+    ],
+    "layout": "CHW",
+    "color": "RGB"
+  },
+  "actions": {
+    "shape": [
+      2
+    ],
+    "range": [
+      -1,
+      1
+    ],
+    "order": [
+      "left",
+      "right"
+    ],
+    "meaning": "fraction of target wheel rpm; motor torque and acceleration limited by physics"
+  },
+  "physics_hz": 50,
+  "action_hz": 10,
+  "metrics_channel_uuid": "9c449eb4-0a7b-4d32-87ad-6bbb0b236251",
+  "coordinates": {
+    "right": "+X",
+    "up": "+Y",
+    "forward": "+Z",
+    "distance": "metres",
+    "time": "simulation seconds",
+    "course_zero": "+Z",
+    "course_positive": "towards +X"
+  },
+  "wheel_order": [
+    "left_front",
+    "left_rear",
+    "right_front",
+    "right_rear"
+  ],
+  "fields": {
+    "lidar_m": {
+      "start": 0,
+      "stop_exclusive": 360
+    },
+    "lidar_no_hit": {
+      "start": 360,
+      "stop_exclusive": 720
+    },
+    "lidar_error": {
+      "start": 720,
+      "stop_exclusive": 1080
+    },
+    "imu_accel_mps2": {
+      "start": 1080,
+      "stop_exclusive": 1083
+    },
+    "imu_gyro_radps": {
+      "start": 1083,
+      "stop_exclusive": 1086
+    },
+    "wheel_rpm": {
+      "start": 1086,
+      "stop_exclusive": 1090
+    },
+    "goal_distance_m": {
+      "index": 1090
+    },
+    "goal_right": {
+      "index": 1091
+    },
+    "goal_forward": {
+      "index": 1092
+    },
+    "simulation_seconds": {
+      "index": 1093
+    },
+    "episode_seconds": {
+      "index": 1094
+    },
+    "observation_dt_seconds": {
+      "index": 1095
+    },
+    "camera_age_seconds": {
+      "index": 1096
+    },
+    "lidar_age_seconds": {
+      "index": 1097
+    },
+    "imu_age_seconds": {
+      "index": 1098
+    },
+    "wheel_age_seconds": {
+      "index": 1099
+    },
+    "goal_age_seconds": {
+      "index": 1100
+    },
+    "camera_valid": {
+      "index": 1101
+    },
+    "lidar_scan_valid": {
+      "index": 1102
+    },
+    "imu_valid": {
+      "index": 1103
+    },
+    "wheel_valid": {
+      "index": 1104
+    },
+    "gps_age_seconds": {
+      "index": 1105
+    },
+    "gps_position_m": {
+      "start": 1106,
+      "stop_exclusive": 1109
+    },
+    "gps_velocity_mps": {
+      "start": 1109,
+      "stop_exclusive": 1112
+    },
+    "gps_course_degrees": {
+      "index": 1112
+    },
+    "gps_course_valid": {
+      "index": 1113
+    },
+    "gps_valid": {
+      "index": 1114
+    },
+    "goal_valid": {
+      "index": 1115
+    },
+    "physics_dt_seconds": {
+      "index": 1116
+    },
+    "action_dt_seconds": {
+      "index": 1117
+    }
+  }
+}

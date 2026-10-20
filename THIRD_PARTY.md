@@ -1,0 +1,5 @@
+# Third-party source
+
+`vendor/mlagents-envs` is the unmodified `ml-agents-envs/` subtree from Unity Technologies ML-Agents commit `ee0a08ccae597094003844d0121317f9790a1676`, package version `1.2.0.dev0`, compatible with Unity package 4.1.0. Source: https://github.com/Unity-Technologies/ml-agents/tree/ee0a08ccae597094003844d0121317f9790a1676/ml-agents-envs . Upstream copyright and Apache-2.0 license notice are preserved in `vendor/mlagents-envs/LICENSE.md`. File hashes are recorded in `vendor/provenance.json`; no upstream source modifications were made.
+
+This small source subtree avoids cloning the upstream repository's full history and makes the exact compatible development package available to pip/uv. Install it before installing Unity extras with pip. uv uses its local path source and uv.lock. Do not edit it locally: update the pinned commit, source files, hashes and compatibility checks together. Other dependencies are installed normally and retain their own licenses. The project owner's own code has no selected redistribution license yet.

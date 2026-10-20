@@ -1,0 +1,10 @@
+include CHANGELOG.md CONTRIBUTING.md SECURITY.md
+recursive-include contracts *.json
+recursive-include docs *.md
+recursive-include examples *.py
+recursive-include tests *.py
+recursive-include vendor *
+include THIRD_PARTY.md uv.lock
+global-exclude *.py[cod]
+prune vendor/mlagents-envs/build
+prune vendor/mlagents-envs/mlagents_envs.egg-info

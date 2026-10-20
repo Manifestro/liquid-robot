@@ -1,0 +1,15 @@
+# Training operations
+
+Use the README commands or `steppe-train --help`. `straight` sets a 3–5 m goal directly ahead and a typical 20 s timeout. `gps_long` sets a 10–30 m road goal, starts facing north, and uses GPS position plus gyro/course estimated heading; use 90 s timeout. `navigation` retains the original ideal-goal task. The environment is procedurally reseeded per episode within the same map generator. Distance/curriculum and timeout must be explicit when comparing runs.
+
+`--initialize-from` loads policy weights only, with a fresh optimizer and zero training counter. Initial policy is evaluated on held-out seeds before updates, then the same seeds are evaluated after the requested number of actions. The default three seeds are a smoke-level evaluation, not a broad generalization benchmark. Run `steppe-evaluate --seeds ...` on additional odd seeds for a larger evaluation.
+
+The run manifest records hyperparameters, versions, device, Python source hashes, initialization checkpoint hash and Unity assembly hash. Exactly the requested number of action decisions is collected. Checkpoints are atomic; latest is saved each PPO update, numbered snapshots approximately every 1000 steps. Retention is currently unbounded: allow disk space or archive artifacts outside a running process. New run directories are mandatory.
+
+`status.json` describes baseline/training/evaluating/completed/failed. `updates.jsonl` contains optimizer metrics; `episodes.jsonl` completed training episodes. `baseline.json` and `evaluation_final.json` summarize fixed-seed evaluations; trajectories and camera images are saved alongside them. `failure.json` records an exception. `summary.json` gives totals and final results. `steppe-report` audits weights/metrics and renders comparisons for runs with baseline/final evaluation (not --no-eval smoke runs).
+
+Training losses do not establish driving quality. Track recent success, collisions, timeout count, return, route completion and held-out performance. `steppe-monitor` reads existing logs and emits TensorBoard data without changing training. It stops after a terminal status; the TensorBoard server can remain available.
+
+PPO: 256-step rollouts, sequences of 32 plus 8 burn-in, batch of 4 sequences, 4 epochs, gamma .99, lambda .95, clip .2, Adam 3e-4, entropy coefficient .005, norm cap .5, KL early stop .03. Hidden state before the burn-in window is from the rollout policy (truncated BPTT). Timeout bootstrap uses the old episode's terminal observation and memory; all boundaries break GAE and clear episode memory. After a policy update the current episode's history rebuilds memory under new weights. CfC uses the official ncps cell directly to preserve [B,1] dt broadcasting with ncps 1.0.1.
+
+Exact mid-episode resume, multi-agent/vectorized collection, automatic curriculum progression, cloud artifact storage and robot transport are not implemented. Seed repeatability is supported, but GPU and Unity physics do not promise bitwise determinism. Simulator `-batchmode` keeps graphics enabled for RGB.

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steppe-robot-learning"
+version = "0.1.0"
+description = "Stateful CfC inference and recurrent PPO training for the Steppe robot"
+readme = "README.md"
+requires-python = ">=3.10.1,<=3.10.12"
+dependencies = ["numpy==1.26.4", "torch==2.8.0", "ncps==1.0.1"]
+
+[project.optional-dependencies]
+unity = ["mlagents-envs==1.2.0.dev0", "grpcio==1.53.2", "protobuf==3.20.3", "gymnasium==0.29.1", "cloudpickle==3.1.2", "farama-notifications==0.0.6", "filelock==4.1.0", "pettingzoo==1.24.3", "pillow==12.3.0", "pyyaml==6.0.3", "typing-extensions==4.16.0"]
+training = ["matplotlib==3.10.7", "tensorboard==2.20.0", "setuptools==80.9.0"]
+dev = ["pytest==8.4.2", "build==1.3.0", "ruff==0.14.0"]
+
+[project.scripts]
+steppe-train = "steppe_robot.training:main"
+steppe-evaluate = "steppe_robot.evaluation:main"
+steppe-report = "steppe_robot.report:main"
+steppe-monitor = "steppe_robot.monitor:main"
+steppe-smoke = "steppe_robot.smoke:main"
+steppe-predict = "steppe_robot.inference:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+steppe_robot = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.uv.sources]
+mlagents-envs = { path = "vendor/mlagents-envs" }
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
