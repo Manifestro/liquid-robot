@@ -1,7 +1,7 @@
 """Versioned task presets; distances below configure forward road-goal placement."""
 
-CURRICULA = ("navigation", "straight", "gps_long", "gps_30_50", "gps_50_100")
-GPS_RANGES = {"gps_long": (10, 30), "gps_30_50": (30, 50), "gps_50_100": (50, 100)}
+CURRICULA = ("navigation", "straight", "gps_long", "gps_30_50", "gps_50_100", "gps_100_150")
+GPS_RANGES = {"gps_long": (10, 30), "gps_30_50": (30, 50), "gps_50_100": (50, 100), "gps_100_150": (100, 150)}
 
 
 def environment_parameters(curriculum):

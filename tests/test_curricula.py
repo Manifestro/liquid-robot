@@ -26,3 +26,12 @@ def test_50_100_profile_stays_within_existing_map_and_uses_gps():
     assert params["goal_max_distance"] == 100
     assert params["gps_navigation"] == 1
     validate_gps_start("gps_50_100", {"gps_navigation": True, "spawn": {"z": -97}, "goal": {"z": 3}})
+
+
+def test_100_150_profile_validates_longer_goal_and_rejects_previous_stage():
+    params = environment_parameters("gps_100_150")
+    assert (params["goal_min_distance"], params["goal_max_distance"]) == (100, 150)
+    assert params["gps_navigation"] == 1
+    validate_gps_start("gps_100_150", {"gps_navigation": True, "spawn": {"z": -97}, "goal": {"z": 53}})
+    with pytest.raises(RuntimeError):
+        validate_gps_start("gps_100_150", {"gps_navigation": True, "spawn": {"z": -97}, "goal": {"z": -47}})
