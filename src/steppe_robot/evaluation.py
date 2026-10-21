@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--env", default=Config.env)
     parser.add_argument("--out", default="runs/cfc_policy_watch")
     parser.add_argument("--time-scale", type=float, default=1)
-    parser.add_argument("--seeds", type=int, nargs="+", default=[123, 1001, 2027])
+    parser.add_argument("--seeds", type=int, nargs="+", default=Config.eval_seeds)
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
     parser.add_argument("--worker-id", type=int, default=20)
     parser.add_argument("--timeout", type=float, default=None)

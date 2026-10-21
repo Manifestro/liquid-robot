@@ -74,11 +74,21 @@ def main():
     before_success = sum(e.get("success", False) for e in baseline["results"])
     after_success = sum(e.get("success", False) for e in evaluation["results"])
     change = "улучшилась" if evaluation["mean_return"] > baseline["mean_return"] else "ухудшилась"
+    best = summary.get("best_evaluation")
+    best_note = ""
+    if best is not None:
+        best_note = (
+            f"\nВыбранная по отдельной валидации модель: шаг {summary['best_step']}, файл `best.pt`. "
+            f"Независимая итоговая проверка: {best['success_rate']:.1%} успешных попыток, "
+            f"{best['collision_rate']:.1%} столкновений. Подробности: `evaluation_best.json`. "
+            "Таблица и графики ниже относятся к последнему обновлению (`latest.pt`).\n"
+        )
     report = (
         f"""# CfC + PPO: эксперимент {final["step"]} шагов
 
 Завершено ровно **{final["step"]} обучающих действий**, {len(updates)} PPO-обновлений, {audit["optimizer_steps"]} шагов оптимизатора. Устройство указано в manifest.json. Весь запуск с исходной и итоговой оценкой занял {summary["wall_seconds"]:.1f} с. Проверки до/после не входят в бюджет обучающих действий.
 
+{best_note}
 За обучение завершено {summary["training_episodes"]} эпизодов: успехов {summary["training_successes"]}, столкновений {summary["training_collisions"]}. Последний незавершённый эпизод не считается успехом или провалом.
 
 На одинаковых отложенных мирах успехов до обучения **{before_success}/{len(baseline["results"])}**, после **{after_success}/{len(evaluation["results"])}**. Средняя награда {change}: {baseline["mean_return"]:.4f} → {evaluation["mean_return"]:.4f}; средний конечный прогресс: {baseline["mean_progress_m"]:.3f} → {evaluation["mean_progress_m"]:.3f} м. Отрицательный прогресс означает, что робот закончил дальше от цели, чем начал.

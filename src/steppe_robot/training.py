@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import hashlib
 import importlib.metadata
 from importlib.resources import files
@@ -18,6 +18,7 @@ from PIL import Image
 from steppe_robot.rl.model import CfCActorCritic
 from steppe_robot.rl.ppo import Rollout, compute_gae, update_ppo
 from steppe_robot.rl.unity_env import UnityRobotEnv
+from steppe_robot.selection import should_replace_best, validate_seed_sets
 
 
 @dataclass
@@ -43,7 +44,9 @@ class Config:
     worker_id: int = 10
     time_scale: float = 20
     timeout: float = 90
-    eval_seeds: tuple[int, ...] = (123, 1001, 2027)
+    eval_seeds: tuple[int, ...] = tuple(range(30001, 30061, 2))
+    validation_seeds: tuple[int, ...] = tuple(range(10001, 10025, 2))
+    validation_interval: int = 10000
     device: str = "cuda"
     curriculum: str = "navigation"
     initialize_from: str = ""
@@ -261,6 +264,10 @@ def main():
         "--initialize-from", default="", help="Load policy weights, starting a new optimizer and step counter"
     )
     parser.add_argument("--timeout", type=float, default=90)
+    parser.add_argument("--learning-rate", type=float, default=Config.learning_rate)
+    parser.add_argument("--validation-interval", type=int, default=Config.validation_interval)
+    parser.add_argument("--validation-seeds", type=int, nargs="+", default=Config.validation_seeds)
+    parser.add_argument("--eval-seeds", type=int, nargs="+", default=Config.eval_seeds)
     args = parser.parse_args()
     config = Config(
         env=args.env,
@@ -270,13 +277,23 @@ def main():
         worker_id=args.worker_id,
         time_scale=args.time_scale,
         device=args.device,
-        eval_seeds=() if args.no_eval else Config.eval_seeds,
+        eval_seeds=() if args.no_eval else tuple(args.eval_seeds),
+        validation_seeds=tuple(args.validation_seeds),
+        validation_interval=0 if args.no_eval else args.validation_interval,
+        learning_rate=args.learning_rate,
         curriculum=args.curriculum,
         timeout=args.timeout,
         initialize_from=args.initialize_from,
     )
     if config.steps < 1:
         parser.error("--steps must be positive")
+    if args.validation_interval < 0 or not np.isfinite(config.learning_rate) or config.learning_rate <= 0:
+        parser.error("Validation interval must be nonnegative and learning rate finite and positive")
+    if config.validation_interval:
+        try:
+            validate_seed_sets(config.validation_seeds, config.eval_seeds)
+        except ValueError as error:
+            parser.error(str(error))
     run = Path(config.run)
     run.mkdir(parents=True, exist_ok=False)
     random.seed(config.seed)
@@ -326,7 +343,8 @@ def main():
         ),
         flush=True,
     )
-    env = None
+    env = validation_env = None
+    best_validation, best_step = None, None
     started = time.monotonic()
     try:
         env = UnityRobotEnv(
@@ -340,10 +358,38 @@ def main():
         )
         write_json(run / "status.json", {"status": "baseline", "step": 0, "target_steps": config.steps})
         baseline = evaluate(model, env, config, run, "baseline")
+        if config.validation_interval:
+            validation_env = UnityRobotEnv(
+                config.env,
+                worker_id=config.worker_id + 100,
+                seed=config.seed,
+                time_scale=config.time_scale,
+                log_folder=run / "validation-player",
+                curriculum=config.curriculum,
+                background=True,
+            )
+
+        def validate(step):
+            nonlocal best_validation, best_step
+            write_json(run / "status.json", {"status": "validating", "step": step, "target_steps": config.steps})
+            directory = run / "validation" / f"step_{step}"
+            directory.mkdir(parents=True)
+            result = evaluate(
+                model, validation_env, replace(config, eval_seeds=config.validation_seeds), directory, "validation"
+            )
+            improved = should_replace_best(result, best_validation)
+            append_json(run / "validation.jsonl", {"step": step, "improved": improved, **result})
+            if improved:
+                best_validation, best_step = result, step
+                save_checkpoint(run / "best.pt", model, optimizer, config, step)
+                write_json(run / "best.json", {"step": step, "validation": result, "checkpoint": str(run / "best.pt")})
+
+        if validation_env is not None:
+            validate(0)
         observation = env.reset(timeout=config.timeout)
         state = model.initial_state(1, config.device)
         episode_start, history = True, []
-        step, update, last_numbered = 0, 0, 0
+        step, update, last_numbered, last_validation = 0, 0, 0, 0
         completed_episodes = []
         training_started = time.monotonic()
         while step < config.steps:
@@ -394,9 +440,21 @@ def main():
             if step - last_numbered >= 1000 or step == config.steps:
                 save_checkpoint(run / "checkpoints" / f"step_{step}.pt", model, optimizer, config, step)
                 last_numbered = step
+            if validation_env is not None and (
+                step - last_validation >= config.validation_interval or step == config.steps
+            ):
+                validate(step)
+                last_validation = step
             write_json(run / "status.json", {"status": "training", "step": step, "target_steps": config.steps})
         write_json(run / "status.json", {"status": "evaluating", "step": step, "target_steps": config.steps})
         final = evaluate(model, env, config, run, "evaluation_final")
+        best_evaluation = None
+        if best_validation is not None:
+            best_model = CfCActorCritic(config.hidden_size).to(config.device).eval()
+            best_model.load_state_dict(
+                torch.load(run / "best.pt", map_location=config.device, weights_only=True)["model"]
+            )
+            best_evaluation = evaluate(best_model, env, config, run, "evaluation_best")
         delta = (
             sum(float((v.detach().cpu() - initial_parameters[k]).square().sum()) for k, v in model.state_dict().items())
             ** 0.5
@@ -413,6 +471,10 @@ def main():
             "weight_change_l2": delta,
             "wall_seconds": time.monotonic() - started,
             "checkpoint": str(run / "latest.pt"),
+            "best_step": best_step,
+            "best_validation": best_validation,
+            "best_evaluation": best_evaluation,
+            "best_checkpoint": str(run / "best.pt") if best_validation is not None else None,
         }
         write_json(run / "summary.json", summary)
         write_json(run / "status.json", {"status": "completed", "step": step, "target_steps": config.steps})
@@ -423,6 +485,8 @@ def main():
         write_json(run / "status.json", {"status": "failed", "error": repr(exception)})
         raise
     finally:
+        if validation_env is not None:
+            validation_env.close()
         if env is not None:
             env.close()
 

@@ -1,10 +1,18 @@
 # Steppe Robot Learning
 
-PyTorch CfC actor–critic with recurrent PPO, Unity LLAPI integration, evaluation tools and a Unity-independent stateful inference API. Companion simulator: **steppe-unity**. Python **3.10.12**, protocol **v1**, Unity ML-Agents **4.1.0** (Python package from the pinned matching upstream commit).
+PyTorch CfC actor–critic with recurrent PPO, Unity LLAPI integration, evaluation tools and a Unity-independent stateful inference API. Companion simulator: [unity-for-robot](https://github.com/Manifestro/unity-for-robot). Python **3.10.12**, protocol **v1**, Unity ML-Agents **4.1.0** (Python package from the pinned matching upstream commit).
 
 ## Install
 
-Clone the two repositories into sibling directories. Run from this repository:
+Clone the two repositories with the local names used by the commands below:
+
+```powershell
+git clone https://github.com/Manifestro/unity-for-robot.git steppe-unity
+git clone https://github.com/Manifestro/liquid-robot.git steppe-robot-learning
+cd steppe-robot-learning
+```
+
+Run from this repository:
 
 ```powershell
 uv python install 3.10.12
@@ -27,11 +35,13 @@ First build the companion Unity project through **Steppe → Build Python Enviro
 ```powershell
 .venv/Scripts/steppe-train.exe --env ../steppe-unity/Builds/RobotTraining/RobotTraining.exe --run runs/straight --curriculum straight --timeout 20 --steps 100000
 .venv/Scripts/steppe-train.exe --env ../steppe-unity/Builds/RobotTraining/RobotTraining.exe --run runs/gps-long --curriculum gps_long --timeout 90 --steps 200000 --initialize-from runs/straight/latest.pt
-.venv/Scripts/steppe-evaluate.exe --env ../steppe-unity/Builds/RobotTraining/RobotTraining.exe --checkpoint runs/gps-long/latest.pt --out runs/gps-watch --seeds 123 1001 2027
+.venv/Scripts/steppe-evaluate.exe --env ../steppe-unity/Builds/RobotTraining/RobotTraining.exe --checkpoint runs/gps-long/best.pt --out runs/gps-watch --seeds 40001 40003 40005
 .venv/Scripts/steppe-report.exe --run runs/gps-long
 ```
 
 Each run requires a **new directory**. `--initialize-from` transfers weights and starts a new optimizer/counter; it is not exact simulator resume. For CPU training pass `--device cpu`. RGB rendering requires a graphics device; do not pass Unity `-nographics`. Use unique `--worker-id` values for concurrent environments.
+
+New runs validate every approximately 10000 actions in a separate Unity process and retain `best.pt`; `latest.pt` can be worse. Validation uses 12 worlds and final evaluation uses a disjoint set of 30. See [training controls](docs/TRAINING.md). A frozen-checkpoint comparison found 30/30 successes for step 100352 versus 21/30 for the last step 200000: [experiment and trajectories](docs/experiments/gps-checkpoints-2026-10-21.md).
 
 Monitor in two terminals:
 

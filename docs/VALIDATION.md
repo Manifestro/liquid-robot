@@ -1,5 +1,13 @@
 # Validation record — 2026-10-20
 
+## Follow-up — 2026-10-21, version 0.2.0
+
+24 tests passed, including ranking/regression protection and validation/test seed isolation; Ruff lint/format checks passed. A real Unity integration test ran 64 training actions with an initial and final validation in a second player, retained the initial weights when the updated policy scored worse, and evaluated selected-best weights on a separate test seed. Both Unity processes closed cleanly. This bounded run tested the selection mechanism, not new navigation quality.
+
+A separate frozen-checkpoint benchmark completed 108 episodes: four models on 12 selection worlds each, then the selected step 100352 and final step 200000 on 30 disjoint confirmation worlds. Results were 30/30 versus 21/30 successful routes, with 0 versus 4 collisions. See [experiment record](experiments/gps-checkpoints-2026-10-21.md). Checkpoints were not updated during benchmarking; the selected copy is verified against its original SHA-256. Final-test outcomes did not choose the checkpoint.
+
+The original extraction validation follows below.
+
 Validated on Windows, Python 3.10.12, Torch 2.8.0+cu126, RTX 3060. A separate package-test environment reused the existing runtime dependency installation through a local `.pth`; it did not modify the active trainer's environment. The `.pth` and virtual environments are ignored local artifacts, not an installation requirement.
 
 | Check | Result |
