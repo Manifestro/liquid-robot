@@ -30,6 +30,8 @@ The compatible upstream `mlagents-envs` development version is supplied as prist
 
 ## Train and evaluate
 
+Latest completed stage: [GPS navigation at 50–100 m](docs/experiments/gps-50-100-2026-10-21.md). The validation-selected checkpoint passed 49/50 independent test worlds with one collision; the last update passed 36/50. The report includes conditions, per-world results, trajectories and artifact checksums.
+
 First build the companion Unity project through **Steppe → Build Python Environment**. Pass its executable explicitly:
 
 ```powershell
