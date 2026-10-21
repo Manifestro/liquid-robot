@@ -20,6 +20,10 @@ def main():
     run = Path(args.run)
     summary = json.loads((run / "summary.json").read_text())
     rows = summary["results"]
+    manifest_path = run / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    task = manifest.get("curriculum", "gps_30_50")
+    timeout = manifest.get("timeout_seconds", 120)
     if len(rows) != 50:
         raise ValueError("This transfer gate requires exactly 50 completed worlds")
     successes = sum(row["success"] for row in rows)
@@ -75,15 +79,15 @@ def main():
     fig.savefig(run / "routes.png", dpi=160)
     plt.close(fig)
     lines = [
-        "# GPS 30–50 m transfer test",
+        f"# {task} transfer test",
         "",
         "Frozen policy; no training during this test.",
         "",
         f"Success: **{successes}/50**. Collisions: **{collisions}/50**. Gate passed: **{passed}**.",
-        f"Measured initial GPS distance: {min(distances):.2f}–{max(distances):.2f} m. The generator places goals 30–50 m forward in Z; road curvature adds a lateral component.",
-        f"Mean attempt duration (including failures): {summary['mean_episode_seconds']:.2f} s; timeout 120 s.",
+        f"Measured initial GPS distance: {min(distances):.2f}–{max(distances):.2f} m. The curriculum places goals forward in Z; road curvature adds a lateral component.",
+        f"Mean attempt duration (including failures): {summary['mean_episode_seconds']:.2f} s; timeout {timeout} s.",
         "",
-        "Gate registered before evaluation: at least 48/50 successes, at most 1 collision. Worlds are odd seeds 50001–50099, separate from prior checkpoint selection/confirmation. Known north-facing launch, ideal sensors and unchanged physics.",
+        "Gate registered before evaluation: at least 48/50 successes, at most 1 collision. Test seeds and provenance are recorded in manifest.json. Known north-facing launch, ideal sensors and unchanged physics.",
         "",
         "![Transfer outcomes](transfer.png)",
         "",

@@ -18,3 +18,11 @@ def test_start_validation_rejects_old_range_or_missing_gps_mode():
     start["gps_navigation"] = False
     with pytest.raises(RuntimeError):
         validate_gps_start("gps_30_50", start)
+
+
+def test_50_100_profile_stays_within_existing_map_and_uses_gps():
+    params = environment_parameters("gps_50_100")
+    assert params["goal_min_distance"] == 50
+    assert params["goal_max_distance"] == 100
+    assert params["gps_navigation"] == 1
+    validate_gps_start("gps_50_100", {"gps_navigation": True, "spawn": {"z": -97}, "goal": {"z": 3}})
