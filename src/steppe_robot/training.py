@@ -19,6 +19,7 @@ from steppe_robot.rl.model import CfCActorCritic
 from steppe_robot.rl.ppo import Rollout, compute_gae, update_ppo
 from steppe_robot.rl.unity_env import UnityRobotEnv
 from steppe_robot.selection import should_replace_best, validate_seed_sets
+from steppe_robot.curricula import CURRICULA
 
 
 @dataclass
@@ -146,6 +147,10 @@ def collect(model, env, observation, state, episode_start, history, size, config
 def evaluate(model, env, config, run, phase):
     episodes = []
     for seed in config.eval_seeds:
+        write_json(
+            run / "evaluation_status.json",
+            {"phase": phase, "completed": len(episodes), "total": len(config.eval_seeds), "seed": seed},
+        )
         observation = env.reset(evaluation=True, world_seed=seed, timeout=config.timeout)
         state, episode_start = model.initial_state(1, config.device), True
         start_distance = float(observation.vector[1090])
@@ -162,6 +167,12 @@ def evaluate(model, env, config, run, phase):
                     "distance": float(observation.vector[1090]),
                     "left": float(action[0]),
                     "right": float(action[1]),
+                    "goal_right": float(observation.vector[1091]),
+                    "goal_forward": float(observation.vector[1092]),
+                    "yaw_rate_radps": float(observation.vector[1084]),
+                    "gps_course_degrees": float(observation.vector[1112]),
+                    "gps_course_valid": bool(observation.vector[1113]),
+                    "speed_mps": float(np.linalg.norm(observation.vector[1109:1112])),
                 }
             )
             transition = env.step(action)
@@ -181,6 +192,10 @@ def evaluate(model, env, config, run, phase):
                 }
                 Image.fromarray(final.image.transpose(1, 2, 0)).save(run / f"{phase}_seed_{seed}_end.png")
                 episodes.append(row)
+                write_json(
+                    run / "evaluation_status.json",
+                    {"phase": phase, "completed": len(episodes), "total": len(config.eval_seeds), "last_result": row},
+                )
                 append_json(run / "evaluation.jsonl", row)
                 write_json(run / f"{phase}_seed_{seed}_trajectory.json", trajectory)
                 print(json.dumps({"event": "evaluation_episode", **row}), flush=True)
@@ -259,7 +274,7 @@ def main():
     parser.add_argument("--time-scale", type=float, default=20)
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
     parser.add_argument("--no-eval", action="store_true")
-    parser.add_argument("--curriculum", choices=["navigation", "straight", "gps_long"], default="navigation")
+    parser.add_argument("--curriculum", choices=CURRICULA, default="navigation")
     parser.add_argument(
         "--initialize-from", default="", help="Load policy weights, starting a new optimizer and step counter"
     )

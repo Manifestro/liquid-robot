@@ -1,5 +1,9 @@
 # Training operations
 
+`gps_30_50` keeps the same GPS/gyro observations and known north-facing launch, changing goal placement to 30–50 m forward along the road generator's Z axis. Actual straight-line distance can be slightly longer on curved roads and is recorded per episode as `start_distance_m`. Use a 120 s episode limit. No new physics build is needed: the player already accepts these environment parameters. To test transferred weights without training, pass `steppe-evaluate --curriculum gps_30_50 --background --timeout 120 --time-scale 30 --seeds ...`. A curriculum override affects the test environment, not checkpoint weights.
+
+Evaluation writes incremental `evaluation_status.json`, so completed-world counts are visible before the full summary is ready. Traces also record GPS speed/course, target direction and yaw rate for failure diagnosis.
+
 Use the README commands or `steppe-train --help`. `straight` sets a 3–5 m goal directly ahead and a typical 20 s timeout. `gps_long` sets a 10–30 m road goal, starts facing north, and uses GPS position plus gyro/course estimated heading; use 90 s timeout. `navigation` retains the original ideal-goal task. The environment is procedurally reseeded per episode within the same map generator. Distance/curriculum and timeout must be explicit when comparing runs.
 
 `--initialize-from` loads policy weights only, with a fresh optimizer and zero training counter. Initial policy is evaluated on final-test seeds before updates, then the same seeds are evaluated after the requested number of actions. New runs default to 30 odd final-test seeds (30001–30059); older checkpoints retain their recorded configuration. Override with `--eval-seeds`. A 30-world result is still limited to this simulator/curriculum.

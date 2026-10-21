@@ -7,6 +7,7 @@ import torch
 from steppe_robot.rl.model import CfCActorCritic
 from steppe_robot.rl.unity_env import UnityRobotEnv
 from steppe_robot.training import Config, evaluate, write_json
+from steppe_robot.curricula import CURRICULA
 
 
 def main():
@@ -19,12 +20,16 @@ def main():
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
     parser.add_argument("--worker-id", type=int, default=20)
     parser.add_argument("--timeout", type=float, default=None)
+    parser.add_argument("--curriculum", choices=CURRICULA, default=None)
+    parser.add_argument("--background", action="store_true")
     args = parser.parse_args()
     torch.set_num_threads(4)
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     config = Config(**checkpoint["config"])
     config.env, config.device, config.time_scale = args.env, args.device, args.time_scale
     config.eval_seeds = tuple(args.seeds)
+    if args.curriculum is not None:
+        config.curriculum = args.curriculum
     if args.timeout is not None:
         config.timeout = max(0.2, args.timeout)
     model = CfCActorCritic(config.hidden_size).to(args.device)
@@ -39,6 +44,7 @@ def main():
         time_scale=args.time_scale,
         log_folder=out / "unity-player",
         curriculum=config.curriculum,
+        background=args.background,
     )
     try:
         summary = evaluate(model, env, config, out, "policy")

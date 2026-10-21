@@ -9,6 +9,7 @@ from mlagents_envs.side_channel.engine_configuration_channel import EngineConfig
 from mlagents_envs.side_channel.environment_parameters_channel import EnvironmentParametersChannel
 from steppe_robot.contract import BEHAVIOR_PREFIX, CAMERA_SHAPE, VECTOR_SIZE, validate_observation
 from steppe_robot.messages import EpisodeMessages
+from steppe_robot.curricula import environment_parameters, validate_gps_start, GPS_RANGES
 
 
 @dataclass
@@ -48,15 +49,8 @@ class UnityRobotEnv:
         self.parameters.set_float_parameter("evaluation", 0)
         self.parameters.set_float_parameter("world_seed", -1)
         self.parameters.set_float_parameter("timeout_seconds", 90)
-        if curriculum == "straight":
-            self.parameters.set_float_parameter("goal_min_distance", 3)
-            self.parameters.set_float_parameter("goal_max_distance", 5)
-            self.parameters.set_float_parameter("straight_goal", 1)
-        elif curriculum == "gps_long":
-            self.parameters.set_float_parameter("goal_min_distance", 10)
-            self.parameters.set_float_parameter("goal_max_distance", 30)
-            self.parameters.set_float_parameter("gps_navigation", 1)
-            self.parameters.set_float_parameter("straight_goal", 0)
+        for name, value in environment_parameters(curriculum).items():
+            self.parameters.set_float_parameter(name, value)
         self.env = UnityEnvironment(
             file_name=str(Path(executable).resolve()),
             seed=seed,
@@ -99,10 +93,9 @@ class UnityRobotEnv:
                 and observation.vector[1092] > 0.99
             ):
                 raise RuntimeError("Stage 1 requires a goal 3-5 m straight ahead; rebuild the Unity environment")
-        if self.curriculum == "gps_long":
+        if self.curriculum in GPS_RANGES:
             start = next((m for m in reversed(self.messages.messages) if m.get("type") == "episode_start"), {})
-            if not start.get("gps_navigation") or not 9.5 <= observation.vector[1090] <= 32:
-                raise RuntimeError("GPS stage requires the new GPS-navigation build and a 10-30 m goal")
+            validate_gps_start(self.curriculum, start)
         return observation
 
     def _next_decision(self):
